@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Doodle Dash</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✏️</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Landing -->
+  <section id="landing" class="screen">
+    <div class="card landing-card">
+      <h1 class="logo">Doodle<span>Dash</span></h1>
+      <p class="tag">Draw it. Guess it. Win bragging rights.</p>
+      <label>Your name
+        <input id="nameInput" maxlength="16" placeholder="e.g. Sanket" autocomplete="off" />
+      </label>
+      <button id="createBtn" class="btn primary big">Create private room</button>
+      <div class="or">or join with a code</div>
+      <div class="row">
+        <input id="codeInput" maxlength="5" placeholder="CODE" autocomplete="off" />
+        <button id="joinBtn" class="btn">Join</button>
+      </div>
+      <p id="landingErr" class="err"></p>
+      <p id="modeNote" class="note"></p>
+    </div>
+  </section>
+
+  <!-- Game -->
+  <section id="game" class="screen hidden">
+    <header class="topbar">
+      <div class="logo small">Doodle<span>Dash</span></div>
+      <div class="timer" id="timer">—</div>
+      <div class="wordbox" id="wordBox"></div>
+      <div class="roundinfo" id="roundInfo"></div>
+      <button class="btn ghost" id="inviteBtn" title="Copy invite link">Room <b id="roomCode"></b> · Copy link</button>
+    </header>
+
+    <div class="layout">
+      <aside class="players card" id="players"></aside>
+
+      <main class="stage">
+        <div class="canvas-wrap card">
+          <canvas id="board" width="800" height="600"></canvas>
+          <div class="overlay hidden" id="overlay"></div>
+        </div>
+        <div class="toolbar card" id="toolbar">
+          <div class="colors" id="colors"></div>
+          <div class="sizes" id="sizes"></div>
+          <div class="tools">
+            <button class="tool active" data-tool="brush" title="Brush (B)">✏️</button>
+            <button class="tool" data-tool="fill" title="Fill (F)">🪣</button>
+            <button class="tool" data-tool="eraser" title="Eraser (E)">🧽</button>
+            <button class="tool" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
+            <button class="tool" id="clearBtn" title="Clear">🗑️</button>
+          </div>
+        </div>
+      </main>
+
+      <aside class="chat card">
+        <div class="chat-log" id="chatLog"></div>
+        <form id="chatForm" class="chat-form">
+          <input id="chatInput" maxlength="80" placeholder="Type your guess here…" autocomplete="off" />
+        </form>
+      </aside>
+    </div>
+  </section>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
