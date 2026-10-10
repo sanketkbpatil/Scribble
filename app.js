@@ -1,5 +1,5 @@
 import { connect, mode } from './transport.js';
-import { DEFAULT_WORDS } from './words.js';
+import { WORDS } from './words.js';
 
 // ---------- helpers ----------
 const $ = (id) => document.getElementById(id);
@@ -29,7 +29,7 @@ let hostId = null;
 let state = {              // public game state (authoritative copy lives on host)
   phase: 'lobby', turnId: 0, round: 0, drawerId: null, mask: '', endsAt: 0, guessed: [],
   scores: {}, gains: {}, reveal: '',
-  settings: { rounds: 3, drawTime: 80, customWords: '', customOnly: false },
+  settings: { rounds: 3, drawTime: 80, customWords: '', customOnly: false, difficulty: 'easy' },
 };
 let myWord = '';           // only set for the drawer
 let myChoices = [];
@@ -92,7 +92,7 @@ function pickChoices() {
   let guard = 0;
   while (out.size < 3 && guard++ < 200) {
     const fromCustom = custom.length && (!useDefault || Math.random() < 0.5);
-    const w = fromCustom ? rand(custom) : rand(DEFAULT_WORDS);
+    const w = fromCustom ? rand(custom) : rand(WORDS[state.settings.difficulty] || WORDS.medium);
     if (H.used.has(norm(w)) && guard < 150) continue;
     out.add(w);
   }
@@ -143,7 +143,8 @@ function hostStartDrawing(word) {
   clearTimers();
   H.word = word; H.used.add(norm(word)); H.revealed = new Set(); H.turnStart = Date.now();
   const total = state.settings.drawTime * 1000;
-  Object.assign(state, { phase: 'drawing', mask: maskOf(word), endsAt: Date.now() + total });
+  if (state.settings.difficulty === 'easy') { const i = [...word].findIndex((c) => c !== ' ' && c !== '-'); if (i >= 0 && word.replace(/[ -]/g, '').length > 2) H.revealed.add(i); }
+  Object.assign(state, { phase: 'drawing', mask: maskOf(word, H.revealed), endsAt: Date.now() + total });
   emit('word', { to: state.drawerId, word });
   pushState();
   startTick(word);
@@ -153,7 +154,10 @@ function startTick(word) {
   const total = state.settings.drawTime * 1000;
   H.revealed = H.revealed || new Set();
   const letters = [...word].map((c, i) => [c, i]).filter(([c]) => c !== ' ' && c !== '-');
-  const maxHints = letters.length >= 8 ? 3 : letters.length >= 5 ? 2 : letters.length >= 4 ? 1 : 0;
+  const diff = state.settings.difficulty;
+  const maxHints = diff === 'easy' ? Math.max(0, Math.ceil(letters.length / 2) - 1)
+    : diff === 'hard' ? (letters.length >= 6 ? 1 : 0)
+    : letters.length >= 8 ? 3 : letters.length >= 5 ? 2 : letters.length >= 4 ? 1 : 0;
   H.tick = setInterval(() => {
     const left = state.endsAt - Date.now();
     const frac = 1 - left / total;
@@ -190,7 +194,8 @@ function hostGuess({ from, name, text }) {
     return;
   }
   emit('chat', { kind: 'msg', name, text: clean });
-  if (w.length > 3 && lev(g, w) === 1) emit('chat', { kind: 'close', to: from, text: `"${clean}" is close!` });
+  const closeLimit = state.settings.difficulty === 'easy' && w.length > 4 ? 2 : 1;
+  if (w.length > 3 && lev(g, w) <= closeLimit) emit('chat', { kind: 'close', to: from, text: `"${clean}" is close!` });
 }
 
 function hostEndTurn(reason) {
@@ -502,6 +507,7 @@ function renderLobby(ov) {
       <label>Rounds<select id="setRounds" ${dis}>${[2, 3, 4, 5, 6, 8, 10].map((n) => `<option ${n === s.rounds ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       <label>Draw time (s)<select id="setTime" ${dis}>${[30, 45, 60, 80, 100, 120, 150, 180].map((n) => `<option ${n === s.drawTime ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     </div>
+    <label>Difficulty<select id="setDiff" ${dis}>${[['easy', 'Easy: simple words, lots of hints'], ['medium', 'Medium: classic'], ['hard', 'Hard: tricky words, 1 hint']].map(([v, t]) => `<option value="${v}" ${v === s.difficulty ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
     <label>Custom words <span class="hint">comma or new-line separated · ${customCount} words</span>
       <textarea id="setWords" ${dis} placeholder="inside jokes, friend names, places you've been…">${esc(s.customWords)}</textarea></label>
     <label class="check"><input type="checkbox" id="setOnly" ${s.customOnly ? 'checked' : ''} ${dis}/> Use custom words only <span class="hint">(needs 3+ words)</span></label>
@@ -510,12 +516,12 @@ function renderLobby(ov) {
   </div>`;
   if (host) {
     const sync = () => {
-      s.rounds = +$('setRounds').value; s.drawTime = +$('setTime').value;
+      s.rounds = +$('setRounds').value; s.drawTime = +$('setTime').value; s.difficulty = $('setDiff').value;
       s.customWords = $('setWords').value.slice(0, 5000); s.customOnly = $('setOnly').checked;
       clearTimeout(sync._t); sync._t = setTimeout(sendState, 300);
       ov.querySelector('.hint').textContent = `comma or new-line separated · ${wordPoolCount()} words`;
     };
-    ['setRounds', 'setTime', 'setOnly'].forEach((id) => ($(id).onchange = sync));
+    ['setRounds', 'setTime', 'setOnly', 'setDiff'].forEach((id) => ($(id).onchange = sync));
     $('setWords').oninput = sync;
     $('startBtn').onclick = hostStartGame;
   }

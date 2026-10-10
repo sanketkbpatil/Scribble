@@ -1,25 +1,41 @@
-export const DEFAULT_WORDS = `apple,banana,pizza,burger,taco,sushi,ice cream,donut,cookie,cake,sandwich,popcorn,cheese,egg,carrot,watermelon,pineapple,grapes,cherry,lemon,
-dog,cat,elephant,giraffe,lion,tiger,monkey,penguin,shark,whale,octopus,snake,turtle,frog,rabbit,horse,cow,pig,chicken,duck,owl,bat,spider,butterfly,bee,ant,snail,crab,dolphin,kangaroo,zebra,panda,koala,camel,unicorn,dragon,dinosaur,
-house,castle,bridge,tower,lighthouse,tent,igloo,pyramid,school,hospital,church,barn,skyscraper,windmill,
-car,bus,train,airplane,helicopter,rocket,boat,bicycle,motorcycle,skateboard,tractor,submarine,ambulance,fire truck,
-sun,moon,star,cloud,rain,snowman,rainbow,lightning,tornado,volcano,mountain,island,beach,river,waterfall,desert,forest,cave,
-tree,flower,cactus,mushroom,leaf,palm tree,rose,sunflower,
-phone,laptop,television,camera,headphones,keyboard,robot,lamp,clock,watch,key,lock,umbrella,glasses,backpack,wallet,scissors,hammer,ladder,bucket,
-chair,table,bed,sofa,door,window,stairs,toilet,bathtub,mirror,candle,fridge,oven,microwave,toaster,
-shirt,pants,dress,hat,shoe,sock,glove,scarf,crown,tie,
-guitar,piano,drum,violin,trumpet,microphone,
-football,basketball,baseball,tennis,golf,bowling,soccer,swimming,surfing,skiing,boxing,trophy,medal,
-king,queen,pirate,ninja,wizard,ghost,zombie,vampire,mermaid,superhero,astronaut,clown,chef,doctor,police,farmer,
-heart,diamond,anchor,flag,map,compass,treasure,sword,shield,bow,arrow,bomb,magnet,battery,lightbulb,
-book,pencil,paintbrush,envelope,gift,balloon,kite,puzzle,dice,cards,
-birthday,wedding,party,campfire,picnic,fireworks,
-eye,nose,mouth,ear,hand,foot,tooth,brain,skeleton,beard,
-spaceship,alien,planet,comet,telescope,
-toothbrush,soap,towel,pillow,blanket,
-snowflake,ice,fire,smoke,wind,
-pizza slice,hot dog,french fries,spaghetti,pancake,cupcake,lollipop,
-jellyfish,seahorse,peacock,flamingo,parrot,hedgehog,squirrel,raccoon,fox,wolf,bear,
-traffic light,stop sign,mailbox,fountain,swing,slide,ferris wheel,roller coaster,
-cowboy,knight,mummy,angel,devil,
-selfie,emoji,wifi,password,video game,remote control`
-  .split(',').map(w => w.trim()).filter(Boolean);
+const list = (s) => s.split(',').map((w) => w.trim()).filter(Boolean);
+
+// Easy: short, concrete, instantly drawable things.
+export const EASY_WORDS = list(`apple,banana,pizza,cake,egg,carrot,cookie,donut,ice cream,cheese,
+dog,cat,fish,bird,cow,pig,duck,frog,snake,bee,spider,lion,mouse,horse,rabbit,turtle,snail,whale,
+sun,moon,star,cloud,rain,rainbow,tree,flower,leaf,mountain,
+house,car,bus,boat,train,bike,plane,rocket,
+ball,book,pen,cup,hat,shoe,sock,shirt,key,door,window,chair,bed,table,clock,lamp,phone,
+heart,smile,eye,hand,foot,nose,ear,tooth,
+box,bag,gift,kite,balloon,candle,bell,ring,crown,flag,
+snowman,ghost,robot,fork,spoon,bottle,umbrella,ladder,tent,bone`);
+
+// Medium: the classic mix.
+export const MEDIUM_WORDS = list(`watermelon,pineapple,sandwich,popcorn,sushi,taco,burger,hot dog,french fries,spaghetti,pancake,cupcake,lollipop,
+elephant,giraffe,monkey,penguin,shark,octopus,kangaroo,zebra,panda,koala,camel,owl,bat,butterfly,crab,dolphin,
+jellyfish,seahorse,peacock,flamingo,parrot,hedgehog,squirrel,raccoon,fox,wolf,bear,unicorn,dragon,dinosaur,
+castle,bridge,lighthouse,igloo,pyramid,school,hospital,barn,skyscraper,windmill,
+helicopter,motorcycle,skateboard,tractor,submarine,ambulance,fire truck,
+lightning,tornado,volcano,island,beach,waterfall,desert,forest,cave,cactus,mushroom,palm tree,sunflower,
+laptop,television,camera,headphones,keyboard,watch,lock,glasses,backpack,wallet,scissors,hammer,bucket,
+sofa,stairs,toilet,bathtub,mirror,fridge,oven,microwave,toaster,dress,glove,scarf,tie,
+guitar,piano,drum,violin,trumpet,microphone,football,basketball,baseball,tennis,golf,bowling,trophy,medal,
+king,queen,pirate,ninja,wizard,zombie,vampire,mermaid,superhero,astronaut,clown,chef,doctor,police,farmer,
+diamond,anchor,map,compass,treasure,sword,shield,bow and arrow,bomb,magnet,battery,lightbulb,
+pencil,paintbrush,envelope,puzzle,dice,birthday,wedding,campfire,picnic,fireworks,
+skeleton,beard,brain,spaceship,alien,planet,telescope,toothbrush,pillow,snowflake,fire,
+traffic light,stop sign,mailbox,fountain,swing,slide,ferris wheel,roller coaster,cowboy,knight,mummy,angel`);
+
+// Hard: actions, ideas and phrases that take creativity to draw.
+export const HARD_WORDS = list(`gravity,echo,shadow,reflection,invisible,nightmare,jet lag,traffic jam,sleepwalking,brain freeze,
+time travel,black hole,earthquake,evolution,recycling,hibernation,photosynthesis,eclipse,tsunami,avalanche,
+procrastination,deja vu,awkward silence,social media,autocorrect,Monday morning,plot twist,stage fright,
+homesick,daydream,hiccup,sneeze,yawn,blindfold,karaoke,yoga,meditation,marathon,tug of war,hide and seek,
+high five,handshake,group hug,peer pressure,cold shoulder,piggy bank,bucket list,comfort zone,
+password,wifi,virus,download,selfie,emoji,cloud storage,video call,low battery,screenshot,
+lie detector,fortune teller,stock market,inflation,tax return,job interview,first date,blind date,
+silent movie,soap opera,reality show,red carpet,standing ovation,encore,
+sunburn,frostbite,heatwave,windchill,fog,tide,constellation,northern lights,
+hangover,midnight snack,food coma,leftovers,doggy bag,potluck,buffet`);
+
+export const WORDS = { easy: EASY_WORDS, medium: MEDIUM_WORDS, hard: HARD_WORDS };
