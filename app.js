@@ -566,8 +566,8 @@ async function join(code) {
 }
 $('createBtn').onclick = () => join(genCode());
 $('joinBtn').onclick = () => join($('codeInput').value.trim().toUpperCase());
-$('codeInput').onkeydown = (e) => e.key === 'Enter' && $('joinBtn').click();
-$('nameInput').onkeydown = (e) => e.key === 'Enter' && (params.get('room') ? $('joinBtn') : $('createBtn')).click();
+$('codeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBtn').click(); });
+$('nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') (params.get('room') ? $('joinBtn') : $('createBtn')).click(); });
 $('inviteBtn').onclick = async () => {
   const url = `${location.origin}${location.pathname}?room=${room}`;
   try { await navigator.clipboard.writeText(url); toast('Invite link copied!'); } catch { prompt('Copy this link:', url); }
