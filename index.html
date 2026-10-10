@@ -47,6 +47,12 @@
           <canvas id="board" width="800" height="600"></canvas>
           <div class="overlay hidden" id="overlay"></div>
         </div>
+        <div class="reactbar card hidden" id="reactBar">
+          <span id="reactLabel"></span>
+          <button class="btn react" id="likeBtn" title="Like">👍 <b id="likeCount">0</b></button>
+          <button class="btn react" id="dislikeBtn" title="Dislike">👎 <b id="dislikeCount">0</b></button>
+          <button class="btn react roast" id="roastBtn" title="Roast the drawer">🔥 Roast</button>
+        </div>
         <div class="toolbar card" id="toolbar">
           <div class="colors" id="colors"></div>
           <div class="sizes" id="sizes"></div>
@@ -71,7 +77,7 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script src="config.js?v=3"></script>
-  <script type="module" src="app.js?v=3"></script>
+  <script src="config.js?v=4"></script>
+  <script type="module" src="app.js?v=4"></script>
 </body>
 </html>

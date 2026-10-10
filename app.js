@@ -28,7 +28,7 @@ let players = [];          // presence list sorted by joinedAt
 let hostId = null;
 let state = {              // public game state (authoritative copy lives on host)
   phase: 'lobby', turnId: 0, round: 0, drawerId: null, mask: '', endsAt: 0, guessed: [],
-  scores: {}, gains: {}, reveal: '',
+  scores: {}, gains: {}, reveal: '', votes: {},
   settings: { rounds: 3, drawTime: 80, customWords: '', customOnly: false, difficulty: 'easy' },
 };
 let myWord = '';           // only set for the drawer
@@ -55,6 +55,8 @@ function onMessage(e, p) {
     // host-only handlers
     case 'guess': if (amHost()) hostGuess(p); break;
     case 'pick': if (amHost() && p.from === state.drawerId && H.choices.includes(p.word)) hostStartDrawing(p.word); break;
+    case 'vote': if (amHost()) hostVote(p); break;
+    case 'roast': if (amHost()) hostRoast(p); break;
     case 'sync-req': if (amHost()) { sendState(); for (let i = 0; i < Math.max(1, log.length); i += 400) net.send('sync', { to: p.from, first: i === 0, ops: log.slice(i, i + 400) }); } break;
   }
 }
@@ -78,7 +80,8 @@ function onPresence(list) {
 function addChatLocal(msg, broadcast) { broadcast ? emit('chat', msg) : addChat(msg); }
 
 // ---------- host game logic ----------
-const snapshot = () => ({ ...state, by: me.id, endsAt: undefined, remaining: Math.max(0, state.endsAt - Date.now()) });
+// custom words stay on the host only; others just get a count
+const snapshot = () => ({ ...state, settings: { ...state.settings, customWords: '', customCount: wordPool().custom.length }, by: me.id, endsAt: undefined, remaining: Math.max(0, state.endsAt - Date.now()) });
 function pushState() { emit('state', snapshot()); }
 function sendState() { net && net.send('state', snapshot()); }
 
@@ -128,7 +131,7 @@ function hostNextTurn() {
   }
   for (const p of players) if (!(p.id in state.scores)) state.scores[p.id] = 0;
   H.word = ''; H.choices = pickChoices(); H.hints = 0;
-  Object.assign(state, { phase: 'choosing', turnId: state.turnId + 1, drawerId: drawer, mask: '', guessed: [], gains: {}, reveal: '', endsAt: Date.now() + CHOOSE_TIME * 1000 });
+  Object.assign(state, { phase: 'choosing', turnId: state.turnId + 1, drawerId: drawer, mask: '', guessed: [], gains: {}, reveal: '', votes: {}, endsAt: Date.now() + CHOOSE_TIME * 1000 });
   pushState();
   emit('choices', { to: drawer, words: H.choices });
   H.timer = setTimeout(() => hostStartDrawing(H.choices[0]), CHOOSE_TIME * 1000 + 500);
@@ -250,6 +253,79 @@ function hostTakeover() {
   } else if (state.phase === 'drawing' || state.phase === 'choosing') { H.word = ''; hostEndTurn('host'); }
   else if (state.phase === 'reveal') { clearTimers(); H.timer = setTimeout(hostNextTurn, 3000); }
 }
+
+// ---------- reactions: likes & roasts ----------
+const ROASTS = [
+  "{d}, is that a drawing or did your mouse sneeze?",
+  "My cat walks across the keyboard and makes better art than {d}.",
+  "{d} draws like they're wearing oven mitts.",
+  "Somewhere, an art teacher just felt a disturbance. Thanks, {d}.",
+  "{d}, Picasso had a blue period. You're having a 'what is that' period.",
+  "That drawing has the confidence of {d} and the accuracy of a weather forecast.",
+  "{d}, even the eraser is embarrassed right now.",
+  "I've seen better lines at the DMV, {d}.",
+  "{d} is out here speedrunning abstract art.",
+  "If this is art, {d}, then my grocery list is a novel.",
+  "{d}, the canvas didn't do anything to deserve this.",
+  "Breaking news: local artist {d} invents a brand new shape nobody asked for.",
+  "{d}, MS Paint called. It wants an apology.",
+  "{d} drawing is the reason undo buttons exist.",
+  "Kindergarten fridges everywhere are rejecting {d}'s work.",
+  "{d}, are you drawing with your eyes closed or is that a style choice?",
+  "I'd guess the word, {d}, but I'm still trying to guess which way is up.",
+  "{d} has two settings: scribble and more scribble.",
+  "Bold strategy, {d}. Make it so bad nobody can copy you.",
+  "{d}, that's not a drawing, that's a cry for help.",
+  "Museums will display this one day, {d}. In the 'what went wrong' wing.",
+  "{d} is giving 'drew this on a bumpy bus ride' energy.",
+  "Even the timer wants this turn to be over, {d}.",
+  "{d}, I've seen ketchup spills with more structure.",
+];
+const roastCooldown = {};
+function hostVote({ from, name, v }) {
+  if (!['drawing', 'reveal'].includes(state.phase) || from === state.drawerId || ![1, -1].includes(v)) return;
+  if (state.votes[from] === v) return;
+  state.votes = { ...state.votes, [from]: v };
+  emit('chat', { kind: v > 0 ? 'like' : 'dislike', text: `${name} ${v > 0 ? 'liked 👍' : 'disliked 👎'} the drawing` });
+  pushState();
+}
+function hostRoast({ from, name }) {
+  if (state.phase !== 'drawing' || from === state.drawerId) return;
+  if (Date.now() - (roastCooldown[from] || 0) < 8000) return;
+  roastCooldown[from] = Date.now();
+  const line = rand(ROASTS).replaceAll('{d}', nameOf(state.drawerId));
+  emit('chat', { kind: 'roast', text: `🔥 ${name}: ${line}` });
+}
+function renderReactions() {
+  const bar = $('reactBar'); if (!bar) return;
+  const active = ['drawing', 'reveal'].includes(state.phase);
+  bar.classList.toggle('hidden', !active);
+  if (!active) return;
+  const vals = Object.values(state.votes || {});
+  $('likeCount').textContent = vals.filter((v) => v > 0).length;
+  $('dislikeCount').textContent = vals.filter((v) => v < 0).length;
+  const mine = (state.votes || {})[me.id];
+  const canReact = !isDrawer();
+  $('likeBtn').disabled = $('dislikeBtn').disabled = !canReact;
+  $('likeBtn').classList.toggle('active', mine > 0);
+  $('dislikeBtn').classList.toggle('active', mine < 0);
+  $('roastBtn').classList.toggle('hidden', !canReact || state.phase !== 'drawing');
+  $('reactLabel').textContent = isDrawer() ? `What they think of your drawing:` : `Rate ${nameOf(state.drawerId)}'s drawing:`;
+}
+function sendVote(v) {
+  if (isDrawer()) return;
+  const msg = { from: me.id, name: me.name, v };
+  if (amHost()) hostVote(msg); else net.send('vote', msg);
+}
+$('likeBtn').onclick = () => sendVote(1);
+$('dislikeBtn').onclick = () => sendVote(-1);
+let myRoastAt = 0;
+$('roastBtn').onclick = () => {
+  if (Date.now() - myRoastAt < 8000) return toast('Easy there — roast again in a few seconds 🔥');
+  myRoastAt = Date.now();
+  const msg = { from: me.id, name: me.name };
+  if (amHost()) hostRoast(msg); else net.send('roast', msg);
+};
 
 // ---------- applying state (all clients) ----------
 let localEndsAt = 0, lastTurnId = -1;
@@ -454,6 +530,7 @@ function renderPlayers() {
 }
 
 function renderToolbar() {
+  renderReactions();
   $('toolbar').classList.toggle('hidden', !canDraw());
   canvas.classList.toggle('can-draw', canDraw());
   const ci = $('chatInput');
@@ -508,8 +585,9 @@ function renderLobby(ov) {
       <label>Draw time (s)<select id="setTime" ${dis}>${[30, 45, 60, 80, 100, 120, 150, 180].map((n) => `<option ${n === s.drawTime ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     </div>
     <label>Difficulty<select id="setDiff" ${dis}>${[['easy', 'Easy: simple words, lots of hints'], ['medium', 'Medium: classic'], ['hard', 'Hard: tricky words, 1 hint']].map(([v, t]) => `<option value="${v}" ${v === s.difficulty ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
-    <label>Custom words <span class="hint">comma or new-line separated · ${customCount} words</span>
-      <textarea id="setWords" ${dis} placeholder="inside jokes, friend names, places you've been…">${esc(s.customWords)}</textarea></label>
+    ${host ? `<label>Custom words <span class="hint">comma or new-line separated · ${customCount} words · only you can see these</span>
+      <textarea id="setWords" placeholder="inside jokes, friend names, places you've been…">${esc(s.customWords)}</textarea></label>`
+    : `<p class="secret-words">${customCount ? `🔒 The host added <b>${customCount}</b> secret custom word${customCount === 1 ? '' : 's'}` : 'No custom words yet'}</p>`}
     <label class="check"><input type="checkbox" id="setOnly" ${s.customOnly ? 'checked' : ''} ${dis}/> Use custom words only <span class="hint">(needs 3+ words)</span></label>
     ${host ? `<button class="btn primary big" id="startBtn">Start game</button>` : ''}
     <p class="hint" id="lobbyHint"></p>
@@ -527,7 +605,7 @@ function renderLobby(ov) {
   }
   updateStartBtn();
 }
-function wordPoolCount() { return wordPool().custom.length; }
+function wordPoolCount() { return amHost() ? wordPool().custom.length : state.settings.customCount || 0; }
 function updateStartBtn() {
   const b = $('startBtn'), hint = $('lobbyHint');
   if (b) b.disabled = players.length < 2;
